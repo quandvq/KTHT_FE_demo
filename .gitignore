@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.tsbuildinfo
+v-pharmacy-site.zip

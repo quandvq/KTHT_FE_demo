@@ -1,3 +1,44 @@
-# KTHT_FE_demo
+# V-pharmacy — Frontend mô phỏng
 
-alo 12 3 4
+Frontend mô phỏng thương hiệu V-pharmacy, xây bằng React + TypeScript + Vite và React Router. Bản này chỉ mô phỏng trình duyệt: không có backend, API, SQL Server hay bảo mật thật. Giỏ hàng, phiên mô phỏng và đơn hàng dùng `localStorage`; vì vậy đơn khách tạo sẽ xuất hiện ở quản trị trong cùng trình duyệt.
+
+## Cài và chạy (PowerShell)
+
+Chạy tại thư mục gốc dự án:
+
+```powershell
+npm install
+npm run dev
+```
+
+Mở URL Vite in trong terminal (thông thường `http://localhost:5173`). Kiểm tra bản production bằng `npm run build`.
+
+## Nhập lại catalog sản phẩm
+
+Nguồn Excel nằm tại `docs/source/pharmacity_products_2026-11-03.xlsx`. Sau khi thay file, chạy `npm run import:catalog`. Lệnh tạo `src/data/catalog.ts`, tải ảnh từ đúng `image_url` vào `public/images/products`, và ghi thống kê lỗi vào `docs/source/catalog-import-report.json`.
+
+Catalog là dữ liệu mô phỏng từ Excel: mô tả, giá và tình trạng kiểm chứng không phải thông tin chuyên môn đã xác minh. Sản phẩm đều ở trạng thái “Cần xác minh” trước khi mua online; ứng dụng không suy diễn quyền bán hàng từ tên hoặc danh mục.
+
+## Tài khoản dùng thử và quyền
+
+Mật khẩu chung cho tất cả tài khoản là `Demo@123`: `khachhang@antam.demo` (Khách hàng), `donhang@antam.demo` (Nhân viên đơn hàng), `kho@antam.demo` (Nhân viên kho), `cskh@antam.demo` (Nhân viên CSKH), `quanly@antam.demo` (Quản lý), `admin@antam.demo` (Quản trị viên).
+
+Vai trò được xác định từ bản ghi tài khoản mock, không có checkbox tự nâng quyền. Khách chỉ vào storefront; nhân viên vào `/admin` với menu theo quyền; customer mở `/admin` nhận 403. Đây chỉ là kiểm tra phía client/localStorage, không phải cơ chế bảo mật thực.
+
+## Phạm vi
+
+FE1 hoàn thành C01–C10 và A01–A03: duyệt sản phẩm, sản phẩm hạn chế bán online, giỏ hàng, checkout không mặc định thanh toán, tạo/xem/xử lý đơn mô phỏng. Các màn hình còn lại được ghi `PLANNED` trong [page-inventory.md](docs/ui/page-inventory.md). FE2: hàng hóa/kho/kênh; FE3: giao vận–CSKH; FE4: thanh toán–báo cáo–cấu hình.
+
+Đã đọc và đối chiếu nguồn yêu cầu [yeu-cau-trien-khai.pdf](docs/source/yeu-cau-trien-khai.pdf). Danh mục 40 route chuẩn và trạng thái thực tế nằm trong [page-inventory.md](docs/ui/page-inventory.md).
+
+
+
+## Flash Sale và mã khuyến mãi (mô phỏng frontend)
+
+Flash Sale có thời gian cố định trong `src/promotions.ts`, do đó đồng hồ không khởi động lại khi tải trang; hết thời hạn, giá tự trở về giá catalog.
+
+- `VPHARMA50`: giảm 50.000đ trên giá trị hàng đủ điều kiện từ 300.000đ.
+- `HELLO10`: giảm 10%, tối đa 80.000đ, trên giá trị hàng đủ điều kiện từ 200.000đ.
+- Mỗi đơn chỉ dùng một mã. Mã mặc định không giảm thêm dòng Flash Sale; phí giao hàng hiện là 0đ trong mô phỏng.
+
+Mã, giỏ hàng, lượt dùng và đơn hàng được lưu trong `localStorage`. Đây chỉ là hành vi frontend mô phỏng, không phải kiểm soát khuyến mãi hay thanh toán bảo mật.
