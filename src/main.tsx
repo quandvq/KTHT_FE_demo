@@ -81,6 +81,7 @@ import "./styles/health.css";
 import "./styles/approvals.css";
 import "./styles/master-completion.css";
 import { catalog } from "./data/catalog";
+import "./data/catalog-labels";
 import { HealthArticlePage, HealthHomeSection, HealthHub } from "./health";
 import {
   authenticate,
@@ -107,7 +108,7 @@ import {
   type Role,
 } from "./auth";
 import { answerChat, type ChatReply, type ChatAgent } from "./chat/catalog";
-import { aggregateReports, todayKey } from "./reports/analytics";
+import { aggregateReports, dataAsOfKey, productReports, todayKey } from "./reports/analytics";
 import { getInventory, LOW_STOCK_THRESHOLD } from "./inventory/store";
 import {
   calculatePromotion,
@@ -128,6 +129,7 @@ import {
 } from "./approvals/pages";
 import { countPendingProposals } from "./approvals/store";
 import { ForecastPanel } from "./reports/ForecastPanel";
+import { ensureDemoSales } from "./sales/demo";
 
 type Product = (typeof catalog)[number];
 type CartLine = { product: Product; qty: number };
@@ -150,6 +152,10 @@ type Order = {
   updatedAt?: string;
   createdAt?: string;
   paidAt?: string;
+  refundedAt?: string;
+  refundAmount?: number;
+  paymentStatus?: "UNPAID" | "PAID" | "REFUNDED";
+  deliveryStatus?: "PENDING" | "SHIPPING" | "DELIVERED" | "CANCELLED" | "RETURNED";
   subtotal?: number;
   flashDiscount?: number;
   voucherSnapshot?: {
@@ -403,9 +409,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState(() =>
     storage.get<CartLine[]>("ktht.cart", []),
   );
-  const [orders, setOrders] = useState(() =>
-    storage.get<Order[]>("ktht.orders", []),
-  );
+  const [orders, setOrders] = useState(() => ensureDemoSales() as Order[]);
   const [user, setUser] = useState(() => currentSession());
   const [appliedVoucher, setAppliedVoucher] = useState<AppliedVoucher | null>(
     () => storage.get<AppliedVoucher | null>("ktht.cart.voucher", null),
@@ -795,7 +799,7 @@ function ChatDemo() {
             />
             <button type="submit">Gửi</button>
           </form>
-          <small>Phản hồi dựa trên dữ liệu mô phỏng · Không tư vấn y tế.</small>
+          <small>Không tư vấn y tế.</small>
         </section>
       )}
       <button
@@ -934,7 +938,7 @@ function Forbidden() {
     <section className="wrap page empty">
       <h1>403 — Không có quyền truy cập</h1>
       <p>
-        Vai trò hiện tại không được phép mở khu vực này trong hệ thống mô phỏng.
+        Vai trò hiện tại không được phép mở khu vực này.
       </p>
       <Link className="primary" to="/">
         Về trang chủ
@@ -1001,7 +1005,7 @@ function StaffChat() {
           <header>
             <div>
               <b>Trợ lý V-pharma</b>
-              <small>Phản hồi dựa trên dữ liệu mô phỏng</small>
+              <small>Trợ lý V-pharma</small>
             </div>
             <button aria-label="Đóng chat" onClick={() => setOpen(false)}>
               <X size={18} />
@@ -1118,7 +1122,7 @@ function AdminLayout() {
               },
             ]
           : []),
-        ...(promotionsAccess
+        ...(promotionsAccess && !management
           ? [
               {
                 to: "/admin/promotions",
@@ -2841,7 +2845,6 @@ function Login() {
     ["Vận hành đơn hàng", "donhang@vpharma.demo"],
     ["Tài chính – Kế toán", "ketoan@vpharma.demo"],
     ["Quản lý TMĐT", "quanly@vpharma.demo"],
-    ["Quản trị viên", "admin@vpharma.demo"],
   ] as const;
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3292,8 +3295,7 @@ function AdminOrderDetail() {
           </h3>
         </div>
         <aside className="summary">
-          <h3>Xử lý đơn hàng</h3>
-          <p className="muted">Thay đổi được lưu trong localStorage.</p>
+          <h3>Cập nhật đơn hàng</h3>
           {display === "Chờ xác nhận" && (
             <button
               className="primary full"
@@ -3318,9 +3320,8 @@ function AdminOrderDetail() {
               Hoàn tất giao hàng
             </button>
           )}
-          <button
+          {display === "Chờ xác nhận" && <button
             className="secondary full"
-            disabled={display !== "Chờ xác nhận"}
             onClick={() =>
               requestConfirm(
                 "Hủy đơn hàng?",
@@ -3330,7 +3331,8 @@ function AdminOrderDetail() {
             }
           >
             Hủy đơn
-          </button>
+          </button>}
+          {display !== "Chờ xác nhận" && <p className="order-updated">Đơn hàng đã được cập nhật.</p>}
         </aside>
       </div>
     </>
@@ -3357,9 +3359,9 @@ function Inventory() {
   return (
     <>
       <p className="crumb">Khu vực nhân viên / Kho</p>
-      <h1>Kho mô phỏng</h1>
+      <h1>Kho hàng</h1>
       <p className="muted">
-        Tồn kho mô phỏng · ngưỡng sắp hết: {LOW_STOCK_THRESHOLD} đơn vị. Tồn khả
+        Ngưỡng sắp hết: {LOW_STOCK_THRESHOLD} đơn vị. Tồn khả
         dụng = tồn vật lý − đang giữ.
       </p>
       <div className="inventory-filters">
@@ -3451,8 +3453,10 @@ function AdminProducts() {
 }
 function Reports() {
   const { user, orders } = useApp();
-  const [preset, setPreset] = useState<"today" | "7" | "30" | "custom">("7");
-  const today = todayKey();
+  const [preset, setPreset] = useState<"oct" | "nov" | "7" | "custom">("nov");
+  const today = dataAsOfKey(orders);
+  const [category, setCategory] = useState("");
+  const [productId, setProductId] = useState("");
   const offset = (count: number) => {
     const date = new Date(today + "T00:00:00Z");
     date.setUTCDate(date.getUTCDate() - count + 1);
@@ -3462,17 +3466,18 @@ function Reports() {
   if (!user || !canAccessReports(user.role))
     return <Forbidden />;
   const range =
-    preset === "today"
-      ? { from: today, to: today }
+    preset === "oct"
+      ? { from: "2026-10-01", to: "2026-10-31" }
+      : preset === "nov"
+        ? { from: "2026-11-01", to: today }
       : preset === "7"
         ? { from: offset(7), to: today }
-        : preset === "30"
-          ? { from: offset(30), to: today }
-          : custom;
+        : custom;
   const data = useMemo(
     () => aggregateReports(orders, range.from, range.to),
     [orders, range.from, range.to],
   );
+  const productsInRange = useMemo(() => productReports(orders, range.from, range.to, category, productId), [orders, range.from, range.to, category, productId]);
   const formatDate = (key: string) =>
     new Intl.DateTimeFormat("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
@@ -3491,20 +3496,20 @@ function Reports() {
       </p>
       <section className="report-filters">
         <button
-          className={preset === "today" ? "active" : ""}
-          onClick={() => setPreset("today")}
+          className={preset === "oct" ? "active" : ""}
+          onClick={() => setPreset("oct")}
         >
           Hôm nay
         </button>
         <button
-          className={preset === "7" ? "active" : ""}
-          onClick={() => setPreset("7")}
+          className={preset === "nov" ? "active" : ""}
+          onClick={() => setPreset("nov")}
         >
           7 ngày gần nhất
         </button>
         <button
-          className={preset === "30" ? "active" : ""}
-          onClick={() => setPreset("30")}
+          className={preset === "7" ? "active" : ""}
+          onClick={() => setPreset("7")}
         >
           30 ngày gần nhất
         </button>
@@ -3553,7 +3558,7 @@ function Reports() {
         </div>
         <div>
           <span>Tổng doanh thu từ trước đến nay</span>
-          <b>{currency(data.lifetimeRevenue)}</b>
+          <b>{currency(data.periodNetRevenue)}</b>
         </div>
         <div>
           <span>Doanh số đặt hàng</span>
@@ -3740,7 +3745,7 @@ function Shipments() {
       <p className="crumb">Khu vực nhân viên / Giao hàng</p>
       <h1>Theo dõi giao hàng</h1>
       <p className="muted">
-        Trạng thái giao hàng được suy ra từ trạng thái đơn mô phỏng.
+        Trạng thái giao hàng được suy ra từ trạng thái đơn.
       </p>
       <div className="admin-table">
         <div className="tr th">
@@ -3816,7 +3821,7 @@ function NotFound() {
   return (
     <section className="wrap page empty">
       <h1>Trang này đang ở trạng thái PLANNED</h1>
-      <p>Chức năng chưa thuộc FE1 nên chưa có giao diện mô phỏng.</p>
+      <p>Chức năng này hiện chưa có giao diện.</p>
     </section>
   );
 }
