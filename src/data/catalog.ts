@@ -2829,7 +2829,7 @@ export const catalog: readonly CatalogProduct[] = [
     "currency": "VND",
     "description": "Mô tả ngắn theo tên sản phẩm: Viên uống DHG NattoEnzym. Chưa đối chiếu đầy đủ thông tin công bố.",
     "image": "/images/products/pc-demo-0129.png",
-    "imageUrl": "https://production-cdn.pharmacity.io/digital/1080x1080/plain/e-com/images/ecommerce/20250729065656-1-P11344_1.png?versionId=0MC2WwtulUuJr1ZgU75ZIymhVbQL20gK",
+    "imageUrl": "https://production-cdn.pharmacity.io/digital/640x640/plain/e-com/images/ecommerce/20250729065656-1-P11344_1.png?versionId=0MC2WwtulUuJr1ZgU75ZIymhVbQL20gK",
     "sourceUrl": "https://www.pharmacity.vn/collection/san-pham-ban-chay",
     "checkedDate": "",
     "priceStatus": "Giá từ trang lưu trữ - cần xác minh lại",
