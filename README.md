@@ -13,6 +13,10 @@ npm run dev
 
 Mở URL Vite in trong terminal (thông thường `http://localhost:5173`). Kiểm tra bản production bằng `npm run build`.
 
+## Triển khai GitHub Pages
+
+Workflow `.github/workflows/deploy-pages.yml` tự build và deploy lên GitHub Pages khi push lên nhánh `main` hoặc chạy thủ công. Vào **Settings → Pages**, chọn **GitHub Actions** làm nguồn deploy. Giả định triển khai là project site của repository này, với URL `https://quandvq.github.io/KTHT_FE_demo/`; nếu đổi tên repository hoặc dùng custom domain, cần cập nhật `base` trong `vite.config.ts`. Ứng dụng dùng hash routing để các đường dẫn con hoạt động khi làm mới trang; URL có dạng `https://quandvq.github.io/KTHT_FE_demo/#/products`. Ảnh và tệp tĩnh được phục vụ từ base path của repository.
+
 ## Nhập lại catalog sản phẩm
 
 Nguồn Excel nằm tại `docs/source/pharmacity_products_2026-11-03.xlsx`. Sau khi thay file, chạy `npm run import:catalog`. Lệnh tạo `src/data/catalog.ts`, tải ảnh từ đúng `image_url` vào `public/images/products`, và ghi thống kê lỗi vào `docs/source/catalog-import-report.json`.

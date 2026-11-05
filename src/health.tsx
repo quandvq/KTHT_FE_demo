@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Search } from 'lucide-react';
 import { healthArticles, healthCategories, type HealthArticle } from './data/health-articles';
+import { assetUrl } from './assets';
 
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('vi-VN').trim().replace(/\s+/g, ' ');
 const pageSize = 4;
 
 function Cover({ article, className = '' }: { article: HealthArticle; className?: string }) {
   const [failed, setFailed] = useState(false);
-  return <div className={'health-cover '+className+(failed ? ' health-cover-fallback' : '')}>{!failed && <img src={article.coverImage} alt={article.imageAlt} loading="lazy" onError={() => setFailed(true)} />}{failed && <span aria-label={article.imageAlt}>V</span>}</div>;
+  return <div className={'health-cover '+className+(failed ? ' health-cover-fallback' : '')}>{!failed && <img src={assetUrl(article.coverImage)} alt={article.imageAlt} loading="lazy" onError={() => setFailed(true)} />}{failed && <span aria-label={article.imageAlt}>V</span>}</div>;
 }
 
 export function HealthCard({ article, featured = false }: { article: HealthArticle; featured?: boolean }) {
