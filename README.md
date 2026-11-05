@@ -1,6 +1,6 @@
-# V-pharmacy — Frontend mô phỏng
+﻿# V-pharma — Frontend mô phỏng
 
-Frontend mô phỏng thương hiệu V-pharmacy, xây bằng React + TypeScript + Vite và React Router. Bản này chỉ mô phỏng trình duyệt: không có backend, API, SQL Server hay bảo mật thật. Giỏ hàng, phiên mô phỏng và đơn hàng dùng `localStorage`; vì vậy đơn khách tạo sẽ xuất hiện ở quản trị trong cùng trình duyệt.
+Frontend mô phỏng thương hiệu V-pharma, xây bằng React + TypeScript + Vite và React Router. Bản này chỉ mô phỏng trình duyệt: không có backend, API, SQL Server hay bảo mật thật. Giỏ hàng, phiên mô phỏng và đơn hàng dùng `localStorage`; vì vậy đơn khách tạo sẽ xuất hiện ở quản trị trong cùng trình duyệt.
 
 ## Cài và chạy (PowerShell)
 

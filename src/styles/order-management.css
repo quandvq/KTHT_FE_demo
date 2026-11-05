@@ -1,0 +1,19 @@
+.admin .order-management-table .tr {
+  grid-template-columns: minmax(88px, .8fr) minmax(120px, 1.2fr) minmax(150px, 1.25fr) minmax(120px, 1fr) minmax(110px, 1fr);
+}
+
+.admin .order-management-table .tr > span:nth-child(3) {
+  color: #52657d;
+  font-size: .9em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .admin .order-management-table {
+    overflow-x: auto;
+  }
+
+  .admin .order-management-table .tr {
+    min-width: 760px;
+  }
+}
