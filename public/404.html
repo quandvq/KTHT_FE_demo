@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đang chuyển hướng... | V-pharma</title>
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        var repo = 'KTHT_FE_demo';
+        var base = path.indexOf('/' + repo) === 0 ? '/' + repo + '/' : '/';
+        var subPath = path.startsWith(base) ? path.slice(base.length) : path.replace(/^\//, '');
+        var target = base + (subPath ? '#/' + subPath : '') + window.location.search + window.location.hash;
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body>
+    <p style="font-family:sans-serif;padding:24px;color:#163b73;">Đang chuyển hướng về trang chủ V-pharma...</p>
+  </body>
+</html>
+

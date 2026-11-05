@@ -400,7 +400,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const returnTo =
     typeof window === "undefined"
       ? "/"
-      : window.location.pathname + window.location.search;
+      : (window.location.hash.replace(/^#/, "") || "/");
   const persist = (next: CartLine[]) => {
     setCart(next);
     storage.set("ktht.cart", next);

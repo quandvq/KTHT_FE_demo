@@ -41,8 +41,8 @@ FE1 hoàn thành C01–C10 và A01–A03: duyệt sản phẩm, sản phẩm h�
 
 Flash Sale có thời gian cố định trong `src/promotions.ts`, do đó đồng hồ không khởi động lại khi tải trang; hết thời hạn, giá tự trở về giá catalog.
 
-- `VPHARMA50`: giảm 50.000đ trên giá trị hàng đủ điều kiện từ 300.000đ.
-- `HELLO10`: giảm 10%, tối đa 80.000đ, trên giá trị hàng đủ điều kiện từ 200.000đ.
+- `VPHARMA50`: giảm 50.000đ trên tổng giá trị hàng đủ điều kiện từ 300.000đ.
+- `HELLO10`: giảm 10%, tối đa 80.000đ, trên tổng giá trị hàng đủ điều kiện từ 200.000đ.
 - Mỗi đơn chỉ dùng một mã. Mã mặc định không giảm thêm dòng Flash Sale; phí giao hàng hiện là 0đ trong mô phỏng.
 
 Mã, giỏ hàng, lượt dùng và đơn hàng được lưu trong `localStorage`. Đây chỉ là hành vi frontend mô phỏng, không phải kiểm soát khuyến mãi hay thanh toán bảo mật.
