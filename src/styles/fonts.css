@@ -1,0 +1,46 @@
+/* Inter is bundled by Vite from @fontsource-variable/inter (including Vietnamese glyphs). */
+:root {
+  --v-pharmacy-font: "Inter Variable", Inter, system-ui, "Segoe UI", Arial, sans-serif;
+}
+
+html,
+body,
+#root,
+button,
+input,
+select,
+textarea {
+  font-family: var(--v-pharmacy-font);
+}
+
+body {
+  font-weight: 400;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+nav a,
+.account,
+.admin aside a,
+.admin aside button {
+  font-weight: 500;
+}
+
+h1,
+h2,
+h3,
+.brand,
+.product-card strong,
+.detail h2,
+.metrics b,
+.summary h3,
+.report-total,
+.admin-table b {
+  font-weight: 650;
+}

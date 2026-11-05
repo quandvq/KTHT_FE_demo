@@ -1,0 +1,255 @@
+.admin {
+  min-height: 100vh;
+  background: #f5f9fd;
+  color: #173b65;
+}
+
+.staff-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  width: 252px;
+  height: 100vh;
+  flex: 0 0 252px;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 14px 14px;
+  background: #d9edfc;
+  color: #173b65;
+  border-right: 1px solid #c3e0f7;
+}
+
+.staff-sidebar .v-brand {
+  margin: 2px 10px 6px !important;
+  color: #173b65 !important;
+}
+
+.staff-sidebar .v-brand b {
+  color: #2d56a3 !important;
+}
+
+.staff-sidebar .v-brand .v-mark {
+  background: #2d56a3;
+  color: #fff;
+  box-shadow: none;
+}
+
+.staff-sidebar .v-brand small {
+  margin-top: 4px;
+  color: #52759c;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.sidebar-close,
+.admin-mobile-toggle {
+  display: none;
+}
+
+.admin-mobile-bar {
+  display: none;
+}
+
+.staff-menu {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.sidebar-group-title {
+  margin: 14px 10px 5px;
+  color: #52759c;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: none;
+}
+
+.sidebar-group-title:first-child {
+  margin-top: 0;
+}
+
+.staff-menu-link,
+.staff-sidebar .sidebar-logout {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 13px;
+  border-radius: 10px;
+  color: #173b65;
+  background: transparent;
+  font-weight: 600;
+  text-align: left;
+  transition: background-color .16s ease, color .16s ease;
+}
+
+.staff-menu-link svg,
+.staff-sidebar .sidebar-logout svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.staff-menu-link:hover,
+.staff-sidebar .sidebar-logout:hover {
+  background: #c3e0f7;
+}
+
+.staff-menu-link.active {
+  background: #2d56a3;
+  color: #fff;
+  box-shadow: 0 2px 5px rgb(23 59 101 / 18%);
+}
+
+.staff-menu-link:focus-visible,
+.staff-sidebar .sidebar-logout:focus-visible,
+.admin-mobile-toggle:focus-visible,
+.sidebar-close:focus-visible {
+  outline: 3px solid #173b65;
+  outline-offset: 2px;
+}
+
+.staff-sidebar .sidebar-logout {
+  width: 100%;
+  margin-top: auto;
+  border-top: 1px solid #bcd9f1;
+  border-radius: 10px;
+}
+
+.admin-main {
+  min-width: 0;
+  padding: 0 34px 36px;
+}
+
+.admin-header {
+  height: 68px;
+  margin-bottom: 30px;
+  color: #52759c;
+  border-bottom-color: #d8e7f5;
+}
+
+.admin-header strong {
+  color: #173b65;
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .admin {
+    display: block;
+  }
+
+  .admin-mobile-bar {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+    display: flex;
+    height: 58px;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: #fff;
+    border-bottom: 1px solid #d8e7f5;
+  }
+
+  .admin-mobile-bar b {
+    color: #173b65;
+  }
+
+  .admin-mobile-toggle,
+  .sidebar-close {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 9px;
+    background: #d9edfc;
+    color: #173b65;
+  }
+
+  .staff-sidebar {
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    width: min(286px, 86vw);
+    height: 100dvh;
+    transform: translateX(-105%);
+    box-shadow: 8px 0 24px rgb(23 59 101 / 18%);
+    transition: transform .2s ease;
+  }
+
+  .staff-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+  }
+
+  .admin-sidebar-backdrop.open {
+    position: fixed;
+    z-index: 90;
+    inset: 0;
+    display: block;
+    background: rgb(15 35 70 / 42%);
+  }
+
+  .admin-main {
+    padding: 0 16px 84px;
+  }
+
+  .admin-header {
+    height: auto;
+    min-height: 46px;
+    margin-bottom: 18px;
+    font-size: 12px;
+  }
+}
+
+/* Override the legacy generic admin selectors while retaining existing content styles. */
+.admin .staff-sidebar {
+  width: 252px;
+  flex-basis: 252px;
+  background: #d9edfc;
+  color: #173b65;
+}
+
+.admin .staff-sidebar .staff-menu-link,
+.admin .staff-sidebar .sidebar-logout {
+  min-height: 46px;
+  color: #173b65;
+  background: transparent;
+  font-size: 14px;
+}
+
+.admin .staff-sidebar .v-brand {
+  font-size: 18px;
+}
+
+.admin .staff-sidebar .staff-menu-link:hover,
+.admin .staff-sidebar .sidebar-logout:hover {
+  background: #c3e0f7;
+}
+
+.admin .staff-sidebar .staff-menu-link.active {
+  background: #2d56a3;
+  color: #fff;
+}
+
+@media (max-width: 800px) {
+  .admin .staff-sidebar {
+    width: min(286px, 86vw);
+    flex-basis: auto;
+    padding: 20px 14px 14px;
+  }
+}

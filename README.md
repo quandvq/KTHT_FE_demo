@@ -42,3 +42,9 @@ Flash Sale có thời gian cố định trong `src/promotions.ts`, do đó đồ
 - Mỗi đơn chỉ dùng một mã. Mã mặc định không giảm thêm dòng Flash Sale; phí giao hàng hiện là 0đ trong mô phỏng.
 
 Mã, giỏ hàng, lượt dùng và đơn hàng được lưu trong `localStorage`. Đây chỉ là hành vi frontend mô phỏng, không phải kiểm soát khuyến mãi hay thanh toán bảo mật.
+
+## Góc sức khỏe
+
+`/goc-suc-khoe` và `/goc-suc-khoe/:slug` là hai trang nội dung frontend. Sáu bài hiện đang ở trạng thái xuất bản, dùng minh họa SVG nội bộ và có liên kết nguồn trực tiếp trong từng bài: WHO (dinh dưỡng, sức khỏe răng miệng), CDC (giấc ngủ) và FDA (bảo quản thuốc, thiết bị dùng tại nhà).
+
+Nội dung được viết lại để cung cấp thông tin chung, không phải tư vấn, chẩn đoán, liều dùng hoặc khuyến nghị điều trị cá nhân. Các bài và nguồn được quản lý tập trung tại `src/data/health-articles.ts`.
