@@ -46,6 +46,11 @@ import {
   SlidersHorizontal,
   Pause,
   Play,
+  WalletCards,
+  ClipboardCheck,
+  Tags,
+  Warehouse,
+  RotateCcw,
 } from "lucide-react";
 import "./styles.css";
 import "./styles/storefront-theme.css";
@@ -82,7 +87,19 @@ import {
   registerCustomer,
   roleLabel,
   isStaff,
+  isManagement,
   canManageOrders,
+  canManageProducts,
+  canManageWarehouse,
+  canManageInventory,
+  canManagePromotions,
+  canAccessSupport,
+  canAccessFinance,
+  canAccessShipments,
+  canAccessReports,
+  canManageSystem,
+  canSubmitProposals,
+  canApproveProposals,
   accounts,
   currentSession,
   setAccountLocked,
@@ -178,10 +195,10 @@ const safeNext = (value: string | null, role: Role) => {
   if (
     (path.startsWith("/admin/approvals") ||
       path.startsWith("/admin/reports")) &&
-    !(role === "MANAGER" || role === "ADMIN")
+    !canApproveProposals(role)
   )
     return "/admin";
-  if (path.startsWith("/admin/proposals") && role !== "ORDER_STAFF")
+  if (path.startsWith("/admin/proposals") && !canSubmitProposals(role))
     return "/admin";
   return value;
 };
@@ -969,7 +986,7 @@ function StaffChat() {
     if (!composing.current) ask(input);
   };
   const suggestions =
-    user && (user.role === "MANAGER" || user.role === "ADMIN")
+    user && isManagement(user.role)
       ? [
           "Doanh thu hôm nay",
           "Số đơn hôm nay",
@@ -1054,9 +1071,8 @@ function StaffChat() {
   );
 }
 function StaffIdentity({ user }: { user: Account }) {
-  const role =
-    user.role === "MANAGER" || user.role === "ADMIN" ? "Quản lý" : "Nhân viên";
-  const initial = role === "Quản lý" ? "T" : "Q";
+  const role = roleLabel[user.role];
+  const initial = user.name.trim().charAt(0).toUpperCase() || "V";
   return (
     <div className="staff-identity">
       <span className="staff-avatar" aria-hidden="true">
@@ -1076,94 +1092,114 @@ function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   if (!user) return <Navigate to="/login?next=/admin" replace />;
   if (!isStaff(user.role)) return <Forbidden />;
-  const canOrders = canManageOrders(user.role),
-    management = user.role === "MANAGER" || user.role === "ADMIN",
-    employee = user.role === "ORDER_STAFF";
+  const canOrders = ["ORDER_OPERATIONS", "ORDER_STAFF", "ECOM_MANAGER", "MANAGER", "ADMIN"].includes(user.role),
+    productsAccess = canManageProducts(user.role),
+    promotionsAccess = canManagePromotions(user.role),
+    warehouseAccess = canManageWarehouse(user.role),
+    shippingAccess = canAccessShipments(user.role),
+    customerCare = canAccessSupport(user.role),
+    finance = canAccessFinance(user.role),
+    reportsAccess = canAccessReports(user.role),
+    management = isManagement(user.role);
   const groups = [
     {
-      title: "Tổng quan",
+      title: "TỔNG QUAN",
       items: [{ to: "/admin", label: "Tổng quan", icon: LayoutDashboard }],
     },
-    ...(employee
-      ? [
-          {
-            title: "Bán hàng",
-            items: [
-              { to: "/admin/proposals", label: "Đề xuất", icon: ClipboardList },
-            ],
-          },
-        ]
-      : []),
-    ...(management
-      ? [
-          {
-            title: "Quản lý",
-            items: [
-              {
-                to: "/admin/approvals",
-                label: `Phê duyệt (${countPendingProposals()})`,
-                icon: ClipboardList,
-              },
-            ],
-          },
-        ]
-      : []),
     {
-      title: "Bán hàng",
-      items: canOrders
-        ? [{ to: "/admin/orders", label: "Đơn hàng", icon: ClipboardList }]
-        : [],
-    },
-    {
-      title: "Vận hành",
+      title: "NGHIỆP VỤ",
       items: [
+        ...(productsAccess
+          ? [
+              {
+                to: "/admin/products",
+                label: "Sản phẩm & Danh mục",
+                icon: Package,
+              },
+            ]
+          : []),
+        ...(promotionsAccess
+          ? [
+              {
+                to: "/admin/promotions",
+                label: "Khuyến mãi & Chiến dịch",
+                icon: Tags,
+              },
+            ]
+          : []),
+        ...(warehouseAccess
+          ? [{ to: "/admin/inventory", label: "Kho hàng", icon: Warehouse }]
+          : []),
         ...(canOrders
+          ? [
+              {
+                to: "/admin/orders",
+                label: "Đơn hàng & Thanh toán",
+                icon: ShoppingCart,
+              },
+            ]
+          : []),
+        ...(shippingAccess
           ? [{ to: "/admin/shipments", label: "Giao hàng", icon: Truck }]
           : []),
-        ...(management
-          ? [{ to: "/admin/inventory", label: "Kho", icon: Package }]
+        ...(customerCare
+          ? [{ to: "/admin/support", label: "Đổi trả & CSKH", icon: RotateCcw }]
           : []),
-      ],
-    },
-    {
-      title: "CSKH",
-      items: [{ to: "/admin/support", label: "CSKH", icon: MessageCircle }],
-    },
-    {
-      title: "Tài chính & Báo cáo",
-      items: [
-        ...(management
+        ...(finance
           ? [
               {
                 to: "/admin/finance",
                 label: "Đối soát & Hóa đơn",
-                icon: ClipboardList,
+                icon: WalletCards,
               },
-              { to: "/admin/reports", label: "Báo cáo", icon: BarChart3 },
             ]
           : []),
-        ...(user.role === "ADMIN"
-          ? [{ to: "/admin/users", label: "Tài khoản nhân viên", icon: User }]
+      ],
+    },
+    {
+      title: "QUẢN TRỊ",
+      items: [
+        ...(management
+          ? [
+              {
+                to: "/admin/approvals",
+                label: `Phê duyệt (${countPendingProposals()})`,
+                icon: ClipboardCheck,
+              },
+            ]
+          : []),
+        ...(reportsAccess
+          ? [
+              {
+                to: "/admin/reports",
+                label: "Báo cáo & Thống kê",
+                icon: BarChart3,
+              },
+            ]
           : []),
       ],
     },
   ].filter((group) => group.items.length);
-  const pageTitle = location.pathname.includes("/proposals")
-    ? "Đề xuất"
+  const pageTitle = location.pathname.includes("/products")
+    ? "Sản phẩm & Danh mục"
+    : location.pathname.includes("/promotions")
+      ? "Khuyến mãi & Chiến dịch"
+      : location.pathname.includes("/proposals")
+        ? "Đề xuất"
     : location.pathname.includes("/approvals")
       ? "Phê duyệt"
       : location.pathname.includes("/orders")
-        ? "Đơn hàng"
+        ? "Đơn hàng & Thanh toán"
         : location.pathname.includes("/shipments")
           ? "Giao hàng"
           : location.pathname.includes("/inventory")
-            ? "Kho"
+            ? "Kho hàng"
             : location.pathname.includes("/support")
-              ? "CSKH"
+              ? "Đổi trả & CSKH"
               : location.pathname.includes("/finance")
                 ? "Đối soát & Hóa đơn"
                 : location.pathname.includes("/reports")
-                  ? "Báo cáo"
+                  ? "Báo cáo & Thống kê"
                   : location.pathname.includes("/users")
                     ? "Tài khoản nhân viên"
                     : "Tổng quan";
@@ -1259,7 +1295,7 @@ function Finance() {
   const [reconciled, setReconciled] = useState<Record<string, string>>(() =>
     storage.get("ktht.finance.reconciled", {}),
   );
-  if (!user || !(user.role === "MANAGER" || user.role === "ADMIN"))
+  if (!user || !canAccessFinance(user.role))
     return <Forbidden />;
   const filtered = orders.filter(
     (order) =>
@@ -2018,7 +2054,13 @@ function Products() {
   const currentPrice = (product: Product) => flashPrice(product);
   let data = products.filter((product) => {
     const text = normalText(
-      product.name + " " + product.brand + " " + product.category,
+      product.name +
+        " " +
+        product.brand +
+        " " +
+        product.category +
+        " " +
+        product.tags.join(" "),
     );
     const price = currentPrice(product);
     return (
@@ -2402,6 +2444,8 @@ function Cart() {
 function Checkout() {
   const { cart, createOrder, user, appliedVoucher, notify } = useApp();
   const nav = useNavigate();
+  const placingOrder = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     customer: user?.name || "",
     phone: "",
@@ -2427,7 +2471,7 @@ function Checkout() {
         </Link>
       </section>
     );
-  if (!cart.length) return <Navigate to="/cart" />;
+  if (!cart.length && !placingOrder.current) return <Navigate to="/cart" />;
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -2454,8 +2498,16 @@ function Checkout() {
         ward: form.ward,
         address: form.address,
       });
-    const order = createOrder(form);
-    nav("/checkout/result/" + order.id);
+    placingOrder.current = true;
+    setSubmitting(true);
+    try {
+      const order = createOrder(form);
+      nav("/checkout/result/" + order.id, { replace: true });
+    } catch {
+      placingOrder.current = false;
+      setSubmitting(false);
+      notify("Không thể lưu đơn hàng. Vui lòng thử lại.");
+    }
   };
   return (
     <section className="wrap page checkout-page">
@@ -2649,8 +2701,8 @@ function Checkout() {
             </div>
           </section>
           <VoucherBox />
-          <button className="primary checkout-submit" type="submit">
-            Đặt hàng · {currency(totals.total + form.shippingFee)}
+          <button className="primary checkout-submit" type="submit" disabled={submitting}>
+            {submitting ? "Đang ghi nhận đơn hàng…" : `Đặt hàng · ${currency(totals.total + form.shippingFee)}`}
           </button>
         </form>
         <aside className="summary checkout-summary">
@@ -2773,17 +2825,23 @@ function Login() {
   const mode = params.get("mode");
   const [email, setEmail] = useState(
     mode === "manager"
-      ? "quanly@antam.demo"
+      ? "quanly@vpharma.demo"
       : mode === "staff"
-        ? "nhanvien@antam.demo"
+        ? "donhang@vpharma.demo"
         : "khachhang@antam.demo",
   );
   const [password, setPassword] = useState("Demo@123");
   const [error, setError] = useState("");
   const demos = [
     ["Khách hàng", "khachhang@antam.demo"],
-    ["Nhân viên", "nhanvien@antam.demo"],
-    ["Quản lý", "quanly@antam.demo"],
+    ["Kỹ thuật (IT)", "it@vpharma.demo"],
+    ["Sản phẩm & Nội dung", "sanpham@vpharma.demo"],
+    ["CRM / Marketing / CSKH", "marketing@vpharma.demo"],
+    ["Kho vận", "khovan@vpharma.demo"],
+    ["Vận hành đơn hàng", "donhang@vpharma.demo"],
+    ["Tài chính – Kế toán", "ketoan@vpharma.demo"],
+    ["Quản lý TMĐT", "quanly@vpharma.demo"],
+    ["Quản trị viên", "admin@vpharma.demo"],
   ] as const;
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3284,11 +3342,7 @@ function Inventory() {
   const [filter, setFilter] = useState<"all" | "low" | "out">("all");
   if (
     !user ||
-    !(
-      user.role === "MANAGER" ||
-      user.role === "ADMIN" ||
-      user.role === "WAREHOUSE_STAFF"
-    )
+    !canManageInventory(user.role)
   )
     return <Forbidden />;
   const records = getInventory().filter((record) => {
@@ -3361,6 +3415,40 @@ function Inventory() {
     </>
   );
 }
+function AdminProducts() {
+  const { user } = useApp();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("Tất cả");
+  if (!user || !canManageProducts(user.role)) return <Forbidden />;
+  const categories = ["Tất cả", ...new Set(products.map((item) => item.category))];
+  const rows = products.filter((item) => {
+    const search = `${item.name} ${item.id} ${item.category} ${item.tags.join(" ")}`.toLowerCase();
+    return (
+      search.includes(query.trim().toLowerCase()) &&
+      (category === "Tất cả" || item.category === category)
+    );
+  });
+  return (
+    <>
+      <p className="crumb">Khu vực nhân viên / Sản phẩm & Danh mục</p>
+      <h1>Sản phẩm & Danh mục</h1>
+      <p className="muted">
+        Quản lý danh sách sản phẩm, SKU, giá bán, danh mục, hình ảnh và trạng thái hiển thị.
+      </p>
+      <div className="inventory-filters">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên, SKU hoặc danh mục" />
+        <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          {categories.map((item) => <option key={item}>{item}</option>)}
+        </select>
+      </div>
+      <div className="admin-table product-admin-table">
+        <div className="tr th"><span>Sản phẩm / SKU</span><span>Danh mục</span><span>Đơn vị</span><span>Giá bán</span><span>Hình ảnh</span><span>Trạng thái</span></div>
+        {rows.map((item) => <div className="tr" key={item.id}><span><b>{item.name}</b><small>{item.id}</small></span><span>{item.category}</span><span>{item.saleUnit || "Đang cập nhật"}</span><b>{currency(item.price)}</b><span>{item.image || item.imageUrl ? "Đã có" : "Placeholder"}</span><Status status={item.tags.includes("Cần xác minh") ? "Chờ xác nhận" : "Hoàn tất"} /></div>)}
+        {!rows.length && <div className="empty">Không có sản phẩm phù hợp.</div>}
+      </div>
+    </>
+  );
+}
 function Reports() {
   const { user, orders } = useApp();
   const [preset, setPreset] = useState<"today" | "7" | "30" | "custom">("7");
@@ -3371,7 +3459,7 @@ function Reports() {
     return date.toISOString().slice(0, 10);
   };
   const [custom, setCustom] = useState({ from: offset(7), to: today });
-  if (!user || !(user.role === "MANAGER" || user.role === "ADMIN"))
+  if (!user || !canAccessReports(user.role))
     return <Forbidden />;
   const range =
     preset === "today"
@@ -3596,7 +3684,7 @@ function ReportChart({
 }
 function Support() {
   const { user } = useApp();
-  if (!user || !isStaff(user.role)) return <Forbidden />;
+  if (!user || !canAccessSupport(user.role)) return <Forbidden />;
   const [tickets] = useState(() =>
     storage.get<{ id: string; question: string; createdAt: string }[]>(
       "ktht.support",
@@ -3636,7 +3724,7 @@ function Support() {
 }
 function Shipments() {
   const { user, orders } = useApp();
-  if (!user || !canManageOrders(user.role)) return <Forbidden />;
+  if (!user || !canAccessShipments(user.role)) return <Forbidden />;
   const label = (status: Order["status"]) =>
     status === "Chờ xác nhận"
       ? "Chờ lấy hàng"
@@ -3688,7 +3776,7 @@ function Shipments() {
 function Users() {
   const { user } = useApp();
   const [list, setList] = useState(() => accounts());
-  if (!user || user.role !== "ADMIN") return <Forbidden />;
+  if (!user || !canManageSystem(user.role)) return <Forbidden />;
   const toggle = (id: string, locked: boolean) =>
     setList(setAccountLocked(id, !locked));
   return (
@@ -3736,6 +3824,11 @@ function ProposalsRoute() {
   const { user } = useApp();
   return <ProposalsPage user={user} />;
 }
+function PromotionsRoute() {
+  const { user } = useApp();
+  if (!user || !canManagePromotions(user.role)) return <Forbidden />;
+  return <ProposalsPage user={user} />;
+}
 function ApprovalsRoute() {
   const { user } = useApp();
   return <ApprovalsPage user={user} />;
@@ -3772,6 +3865,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="promotions" element={<PromotionsRoute />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="orders/:id" element={<AdminOrderDetail />} />
             <Route path="shipments" element={<Shipments />} />

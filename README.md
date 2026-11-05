@@ -25,7 +25,19 @@ Catalog là dữ liệu mô phỏng từ Excel: mô tả, giá và tình trạng
 
 ## Tài khoản dùng thử và quyền
 
-Mật khẩu chung cho tất cả tài khoản là `Demo@123`: `khachhang@antam.demo` (Khách hàng), `donhang@antam.demo` (Nhân viên đơn hàng), `kho@antam.demo` (Nhân viên kho), `cskh@antam.demo` (Nhân viên CSKH), `quanly@antam.demo` (Quản lý), `admin@antam.demo` (Quản trị viên).
+Mật khẩu chung cho tất cả tài khoản là `Demo@123`.
+
+- `khachhang@antam.demo` — Khách hàng.
+- `it@vpharma.demo` — Kỹ thuật (IT).
+- `sanpham@vpharma.demo` — Sản phẩm & Nội dung số.
+- `marketing@vpharma.demo` — CRM / Marketing / CSKH.
+- `khovan@vpharma.demo` — Kho vận.
+- `donhang@vpharma.demo` — Vận hành đơn hàng.
+- `ketoan@vpharma.demo` — Tài chính – Kế toán.
+- `quanly@vpharma.demo` — Quản lý TMĐT.
+- `admin@vpharma.demo` — Quản trị viên.
+
+Các tài khoản `nhanvien@antam.demo` và `quanly@antam.demo` vẫn được giữ để tương thích với phiên demo cũ.
 
 Vai trò được xác định từ bản ghi tài khoản mock, không có checkbox tự nâng quyền. Khách chỉ vào storefront; nhân viên vào `/admin` với menu theo quyền; customer mở `/admin` nhận 403. Đây chỉ là kiểm tra phía client/localStorage, không phải cơ chế bảo mật thực.
 
