@@ -16,6 +16,13 @@
   background-repeat:no-repeat,no-repeat;
   background-size:100% 1400px,max(100vw,2347px) auto;
 }
+
+.storefront main:has(> .hero){
+  background-image:linear-gradient(to bottom,rgba(243,247,252,0) 0,rgba(243,247,252,.04) 68%,rgba(243,247,252,.58) 89%,#f3f7fc 100%),var(--home-background-image);
+}
+.storefront.storefront main:has(> .home-carousel){
+  background-image:linear-gradient(to bottom,rgb(243 247 252 / 0) 0,rgb(243 247 252 / .12) 62%,#f3f7fc 96%),var(--home-background-image);
+}
 .storefront main:has(> .hero)>.hero{
   background:linear-gradient(108deg,rgb(220 234 255 / 54%) 0%,rgb(247 250 255 / 36%) 57%,rgb(217 238 252 / 48%) 100%);
 }
