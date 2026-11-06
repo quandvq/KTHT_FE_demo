@@ -7,8 +7,16 @@
     <script>
       (function () {
         var path = window.location.pathname;
-        var repo = 'KTHT_FE_demo';
-        var base = path.indexOf('/' + repo) === 0 ? '/' + repo + '/' : '/';
+        var hostname = window.location.hostname;
+        var base = '/';
+        if (hostname.endsWith('.github.io')) {
+          var firstSeg = path.split('/')[1];
+          if (firstSeg) {
+            base = '/' + firstSeg + '/';
+          }
+        } else if (path.indexOf('/KTHT_FE_demo') === 0) {
+          base = '/KTHT_FE_demo/';
+        }
         var subPath = path.startsWith(base) ? path.slice(base.length) : path.replace(/^\//, '');
         var target = base + (subPath ? '#/' + subPath : '') + window.location.search + window.location.hash;
         window.location.replace(target);
