@@ -1,0 +1,339 @@
+/* =========================================================
+   V-PHARMA TEXT SIZING & ANTI-LINE-JUMP POLISH
+   ========================================================= */
+
+/* 1. Global Viewport & Container Containment */
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+#root,
+.storefront,
+.admin {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 2. Prices & Currency: NEVER break across lines */
+.sale-price,
+.product-card strong,
+.money,
+.price,
+.account-order strong,
+.dash-kpi-value,
+.detail .sale-price,
+.cart-line strong,
+.summary-row b,
+.report-metrics b,
+.product-admin-table b {
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+  display: inline-block;
+}
+
+/* 3. Product Card Titles: Uniform 2-line clamp to avoid card jumping */
+.storefront .product-card h3 {
+  font-size: 0.875rem !important;
+  line-height: 1.35 !important;
+  height: 2.7em !important;
+  min-height: 2.7em !important;
+  max-height: 2.7em !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: break-word;
+  margin: 0 0 6px 0 !important;
+}
+
+/* Product Card buttons: Single line with clean font size */
+.storefront .product-card button {
+  min-height: 40px !important;
+  font-size: 0.8125rem !important;
+  padding: 8px 10px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  letter-spacing: -0.01em;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin-top: auto !important;
+}
+
+.storefront .product-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.storefront .product-card .tags {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.storefront .product-card p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8125rem;
+  margin-bottom: 6px;
+}
+
+/* 4. Storefront Header & Navigation: Clean single line with auto-scroll */
+.storefront header {
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+.storefront header nav {
+  display: flex !important;
+  align-items: center !important;
+  gap: clamp(8px, 1.4vw, 22px) !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.storefront header nav::-webkit-scrollbar {
+  display: none !important;
+}
+
+.storefront header nav a {
+  font-size: clamp(0.8125rem, 0.95vw, 0.9375rem) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  padding: 6px 4px !important;
+  letter-spacing: -0.01em;
+}
+
+.storefront .head-actions {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.storefront .account {
+  white-space: nowrap !important;
+  font-size: 0.875rem !important;
+}
+
+/* 5. Staff Sidebar: Single-line menu links with ellipsis if long */
+.staff-menu-link,
+.wf-department-menu a {
+  font-size: 0.875rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.01em;
+}
+
+/* 6. Action Buttons in Workflows & Tables: Single line */
+.wf button,
+.wf-table button,
+.wf-shortcuts a,
+.dash-pill-btn,
+.report-filters button {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+
+/* 7. Badges & Tags: Always stay in one piece */
+.wf-badge,
+.status,
+.tags small,
+.dash-kpi-badge {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
+  padding: 3px 8px !important;
+  vertical-align: middle;
+}
+
+/* 8. Pagination: Responsive, wrapped, no overflow */
+.pagination {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 6px !important;
+  max-width: 100% !important;
+  margin: 24px auto !important;
+  padding: 0 10px !important;
+}
+
+.pagination button {
+  min-width: 36px !important;
+  width: auto !important;
+  height: 36px !important;
+  padding: 0 10px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  border-radius: 8px !important;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 36px;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* 9. Layout Containment for Grid & Products */
+.products-layout {
+  min-width: 0;
+}
+
+.products-layout > * {
+  min-width: 0;
+}
+
+.grid {
+  min-width: 0;
+}
+
+/* 10. Dashboard Card Metrics: Safe font sizing */
+.dash-kpi-value {
+  font-size: clamp(1.35rem, 2vw, 1.7rem) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.dash-kpi-sub {
+  font-size: 0.8125rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.dash-kpi-label {
+  font-size: 0.875rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 11. Admin Order Detail Product List & Anti-Line-Jump */
+.admin-order-products {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.admin-order-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.admin-order-line:hover {
+  background: #f1f5f9;
+}
+
+.admin-order-line-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.45;
+}
+
+.admin-order-line-name {
+  color: #1e293b;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.admin-order-line-qty {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap !important;
+  background: #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.admin-order-line-price {
+  white-space: nowrap !important;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-order-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.admin-order-total-row h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.admin-order-total-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0d9488;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Fallback protection for legacy .right floats inside admin detail form */
+.admin-detail .form p:has(.right),
+.admin-detail .form h3:has(.right) {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  gap: 16px !important;
+}
+
+.admin-detail .form p .right,
+.admin-detail .form h3 .right {
+  float: none !important;
+  margin-left: auto !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  text-align: right !important;
+}
+
+

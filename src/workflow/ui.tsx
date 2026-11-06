@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { accounts, isManagement, roleLabel, type Account } from '../auth';
 import { assetUrl } from '../assets';
 import * as W from './store';
+import { WorkflowDashboard } from './dashboard';
 import './workflow.css';
 export const useWorkflow = () => useSyncExternalStore(W.subscribe, W.getState);
 const money = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
@@ -52,7 +53,13 @@ export function WorkflowPage({ user, section: forced }: {
         return <section className="empty"><h1>403 — Không có quyền truy cập</h1></section>;
     const has = (value: string) => value.toLocaleLowerCase('vi-VN').includes(query.toLocaleLowerCase('vi-VN'));
     return <section className="wf"><div className="wf-heading"><div><p className="crumb">{roleLabel[user.role]}</p><h1>{sectionTitles[section]}</h1></div><Notifications user={user}/></div>{message && <p role="status" className="wf-success">{message}</p>}{error && <p role="alert" className="wf-error">{error}</p>}<label className="wf-search">Tìm kiếm<input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã, tên hoặc nội dung"/></label>
-  {section === 'overview' && <><div className="metrics"><div><span>Yêu cầu chờ duyệt</span><b>{s.requests.filter(r => r.status === 'PENDING' && (isManagement(user.role) || r.requestedBy === user.id)).length}</b></div><div><span>Công việc theo phòng ban</span><b>{departmentSections(user).length - 1}</b></div><div><span>Thông báo chưa đọc</span><b>{s.notifications.filter(n => n.userId === user.id && !n.read).length}</b></div></div><div className="wf-shortcuts">{departmentSections(user).filter(k => k !== 'overview').map(k => <Link key={k} to={'/admin/workflow/' + k}>{sectionTitles[k]} →</Link>)}</div><History /></>}
+  {section === 'overview' && <>
+    <WorkflowDashboard user={user} />
+    <h2 style={{ marginTop: '24px', marginBottom: '12px' }}>Lối tắt Phòng ban & Chức năng</h2>
+    <div className="wf-shortcuts">{departmentSections(user).filter(k => k !== 'overview').map(k => <Link key={k} to={'/admin/workflow/' + k}>{sectionTitles[k]} →</Link>)}</div>
+    <h2 style={{ marginTop: '28px', marginBottom: '12px' }}>Nhật ký Hoạt động Hệ thống</h2>
+    <History />
+  </>}
   {['content', 'price', 'campaigns', 'purchase', 'stocktake'].includes(section) && <RequestWorkbench user={user} kind={section === 'content' ? 'CONTENT' : section === 'price' ? 'PRICE' : section === 'campaigns' ? 'CAMPAIGN' : section === 'purchase' ? 'PURCHASE' : 'STOCKTAKE'} query={query} act={act}/>}
   {section === 'approvals' && <ApprovalCenter user={user} query={query} act={act}/>}
   {section === 'publications' && <Publications user={user} query={query} act={act}/>}

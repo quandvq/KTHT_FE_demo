@@ -80,6 +80,8 @@ import "./styles/chat-faq.css";
 import "./styles/health.css";
 import "./styles/approvals.css";
 import "./styles/master-completion.css";
+import "./styles/friendly-dashboard.css";
+import "./styles/text-polish.css";
 import { catalog } from "./data/catalog";
 import "./data/catalog-labels";
 import { HealthArticlePage, HealthHomeSection, HealthHub } from "./health";
@@ -2148,20 +2150,57 @@ function Products() {
               </div>
               {totalPages > 1 && (
                 <nav className="pagination" aria-label="Phân trang">
-                  {Array.from(
-                    { length: totalPages },
-                    (_, index) => index + 1,
-                  ).map((value) => (
+                  {page > 1 && (
                     <button
                       type="button"
-                      className={value === page ? "active" : ""}
-                      aria-current={value === page ? "page" : undefined}
-                      onClick={() => update({ page: String(value) })}
-                      key={value}
+                      className="pagination-nav"
+                      aria-label="Trang trước"
+                      onClick={() => update({ page: String(page - 1) })}
                     >
-                      {value}
+                      ‹
                     </button>
-                  ))}
+                  )}
+                  {(() => {
+                    const items: (number | string)[] = [];
+                    if (totalPages <= 7) {
+                      for (let i = 1; i <= totalPages; i++) items.push(i);
+                    } else {
+                      items.push(1);
+                      if (page > 3) items.push("…");
+                      const start = Math.max(2, page - 1);
+                      const end = Math.min(totalPages - 1, page + 1);
+                      for (let i = start; i <= end; i++) items.push(i);
+                      if (page < totalPages - 2) items.push("…");
+                      items.push(totalPages);
+                    }
+                    return items.map((val, idx) =>
+                      typeof val === "number" ? (
+                        <button
+                          type="button"
+                          className={val === page ? "active" : ""}
+                          aria-current={val === page ? "page" : undefined}
+                          onClick={() => update({ page: String(val) })}
+                          key={val}
+                        >
+                          {val}
+                        </button>
+                      ) : (
+                        <span className="pagination-ellipsis" key={`ellipsis-${idx}`}>
+                          …
+                        </span>
+                      ),
+                    );
+                  })()}
+                  {page < totalPages && (
+                    <button
+                      type="button"
+                      className="pagination-nav"
+                      aria-label="Trang sau"
+                      onClick={() => update({ page: String(page + 1) })}
+                    >
+                      ›
+                    </button>
+                  )}
                 </nav>
               )}
             </>
@@ -3243,16 +3282,22 @@ function AdminOrderDetail() {
             {o.address}
           </p>
           <h3>Sản phẩm</h3>
-          {o.lines.map((x) => (
-            <p key={x.product.id}>
-              {x.product.name} × {x.qty}
-              <b className="right">{currency(x.product.price * x.qty)}</b>
-            </p>
-          ))}
+          <div className="admin-order-products">
+            {o.lines.map((x) => (
+              <div key={x.product.id} className="admin-order-line">
+                <div className="admin-order-line-info">
+                  <span className="admin-order-line-name">{x.product.name}</span>
+                  <span className="admin-order-line-qty">× {x.qty}</span>
+                </div>
+                <b className="admin-order-line-price">{currency(x.product.price * x.qty)}</b>
+              </div>
+            ))}
+          </div>
           <hr />
-          <h3>
-            Tổng: <b className="right">{currency(o.total)}</b>
-          </h3>
+          <div className="admin-order-total-row">
+            <h3>Tổng:</h3>
+            <b className="admin-order-total-val">{currency(o.total)}</b>
+          </div>
         </div>
         <aside className="summary">
           <h3>Cập nhật đơn hàng</h3>
