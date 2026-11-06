@@ -27,7 +27,13 @@ body {
 .cart-line strong,
 .summary-row b,
 .report-metrics b,
-.product-admin-table b {
+.product-admin-table b,
+.metrics b,
+.metrics div b,
+.wf .metrics b,
+.admin .metrics b,
+.metric-card b,
+.wf-finance-metrics b {
   white-space: nowrap !important;
   font-variant-numeric: tabular-nums;
   word-break: keep-all;
@@ -335,5 +341,63 @@ body {
   flex-shrink: 0 !important;
   text-align: right !important;
 }
+
+/* 12. Financial Reports & Metrics Cards Anti-Line-Jump */
+.metrics,
+.wf .metrics,
+.admin .metrics,
+.wf-finance-metrics {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 14px !important;
+  margin: 18px 0 24px !important;
+}
+
+.metrics div,
+.wf .metrics div,
+.admin .metrics div,
+.metric-card {
+  padding: 16px 18px !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.metrics span,
+.wf .metrics span,
+.admin .metrics span,
+.metric-card span {
+  font-size: 0.8125rem !important;
+  color: #64748b !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-bottom: 6px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+  display: block !important;
+}
+
+.metrics b,
+.metrics div b,
+.wf .metrics b,
+.admin .metrics b,
+.metric-card b {
+  font-size: clamp(1.15rem, 1.5vw, 1.55rem) !important;
+  line-height: 1.25 !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  font-variant-numeric: tabular-nums;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 2px !important;
+}
+
 
 
