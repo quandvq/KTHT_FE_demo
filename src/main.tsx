@@ -115,6 +115,7 @@ import {
   flashCampaign,
   flashPrice,
   getVouchers,
+  getFlashCampaigns,
   isFlashActive,
   normalizeVoucher,
   recordVoucherUse,
@@ -130,6 +131,8 @@ import {
 import { countPendingProposals } from "./approvals/store";
 import { ForecastPanel } from "./reports/ForecastPanel";
 import { ensureDemoSales } from "./sales/demo";
+import * as Workflow from './workflow/store';
+import { WorkflowPage, DepartmentMenu, CustomerWorkflows, PublishedContent, useWorkflow } from './workflow/ui';
 
 type Product = (typeof catalog)[number];
 type CartLine = { product: Product; qty: number };
@@ -169,7 +172,7 @@ type Order = {
   status: "Chờ xác nhận" | "Đang xử lý" | "Đang giao" | "Hoàn tất" | "Đã hủy";
   lines: CartLine[];
 };
-const products = catalog;
+let products: readonly Product[] = catalog;
 const currency = (n: number) =>
   new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -409,8 +412,18 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState(() =>
     storage.get<CartLine[]>("ktht.cart", []),
   );
-  const [orders, setOrders] = useState(() => ensureDemoSales() as Order[]);
+  const shared = useWorkflow();
+  const orders = shared.orders as Order[];
+  products = shared.products;
   const [user, setUser] = useState(() => currentSession());
+  useEffect(() => {
+    const changed=cart.some(line=>Workflow.priceOf(line.product.id,line.product.price)!==line.product.price);
+    if(changed){
+      const next=cart.map(line=>({...line,product:Workflow.currentProduct(line.product.id)||line.product}));
+      storage.set('ktht.cart',next);setCart(next);
+      setToast('Giá sản phẩm vừa được cập nhật. Vui lòng kiểm tra tổng tiền trước khi đặt hàng.');
+    }
+  },[shared.revision]);
   const [appliedVoucher, setAppliedVoucher] = useState<AppliedVoucher | null>(
     () => storage.get<AppliedVoucher | null>("ktht.cart.voucher", null),
   );
@@ -495,8 +508,9 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       appliedVoucher && !totals.message
         ? getVouchers().find((v) => v.id === appliedVoucher.voucherId)
         : undefined;
+    if(totals.message)throw new Error(totals.message);
     const order: Order = {
-      id: "DH" + String(Date.now()).slice(-6),
+      id: "DH-" + crypto.randomUUID(),
       date: new Date().toLocaleString("vi-VN"),
       ...info,
       customerId: user?.id,
@@ -523,31 +537,18 @@ function AppProvider({ children }: { children: React.ReactNode }) {
         product: { ...line.product, price: totals.linePrices[line.product.id] },
       })),
     };
-    const next = [order, ...orders];
-    setOrders(next);
-    storage.set("ktht.orders", next);
-    if (voucher) recordVoucherUse(voucher.id, user?.id);
+    if (!user) throw new Error('Vui lòng đăng nhập.');
+    Workflow.placeOrder(user, order as Workflow.Order);
     saveVoucher(null);
     persist([]);
     return order;
   };
-  const updateOrderStatus = (id: string, status: Order["status"]) => {
-    if (!user || !canManageOrders(user.role)) return;
-    setOrders((current) => {
-      const next = current.map((o) =>
-        o.id === id
-          ? {
-              ...o,
-              status,
-              updatedAt: new Date().toLocaleString("vi-VN"),
-              paidAt:
-                status === "Hoàn tất" ? new Date().toISOString() : o.paidAt,
-            }
-          : o,
-      );
-      storage.set("ktht.orders", next);
-      return next;
-    });
+  const updateOrderStatus = (id: string, status: Order['status']) => {
+    if (!user) return;
+    try {
+      if (status === 'Đang xử lý') notify(Workflow.confirmOrder(user,id));
+      else notify('Tiếp tục xử lý tại Giao nhận hoặc Yêu cầu hủy đơn.');
+    } catch (error) { notify((error as Error).message); }
   };
   const login = (email: string, password: string) => {
     const result = authenticate(email, password);
@@ -654,15 +655,7 @@ function ChatDemo() {
   const ask = (raw: string) => {
     const text = raw.trim();
     if (!text) return;
-    const all = storage.get<
-      {
-        id: string;
-        question: string;
-        createdAt: string;
-        customerId?: string;
-        status?: string;
-      }[]
-    >("ktht.support", []);
+    const all = Workflow.getState().tickets;
     const tickets = user
       ? all.filter((ticket) => ticket.customerId === user.id)
       : [];
@@ -677,17 +670,7 @@ function ChatDemo() {
       tickets,
       previousAgent: topic,
     });
-    if (user)
-      storage.set("ktht.support", [
-        {
-          id: "CS" + Date.now(),
-          question: text,
-          createdAt: new Date().toLocaleString("vi-VN"),
-          customerId: user.id,
-          status: "Chờ tiếp nhận",
-        },
-        ...all,
-      ]);
+    if (user?.role==='CUSTOMER') Workflow.createTicket(user,text);
     setTopic(replies[0]?.agent);
     setMessages((current) => [
       ...current,
@@ -958,15 +941,7 @@ function StaffChat() {
   const ask = (raw: string) => {
     const text = raw.trim();
     if (!text || !user) return;
-    const tickets = storage.get<
-      {
-        id: string;
-        question: string;
-        createdAt: string;
-        customerId?: string;
-        status?: string;
-      }[]
-    >("ktht.support", []);
+    const tickets = Workflow.getState().tickets;
     const replies = answerChat(text, {
       role: user.role,
       orders,
@@ -1240,28 +1215,7 @@ function AdminLayout() {
         </button>
         <Brand admin />
         <nav className="staff-menu">
-          {groups.map((group) => (
-            <React.Fragment key={group.title}>
-              <p className="sidebar-group-title">{group.title}</p>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    end={item.to === "/admin"}
-                    className={({ isActive }) =>
-                      "staff-menu-link " + (isActive ? "active" : "")
-                    }
-                    to={item.to}
-                    onClick={close}
-                    key={item.to}
-                  >
-                    <Icon />
-                    {item.label}
-                  </NavLink>
-                );
-              })}
-            </React.Fragment>
-          ))}
+          <DepartmentMenu user={user} onClick={close}/>
         </nav>
         <button className="sidebar-logout" onClick={logout}>
           <LogOut />
@@ -1271,7 +1225,7 @@ function AdminLayout() {
       <section className="admin-main">
         <div className="admin-header">
           <strong className="admin-current-page">{pageTitle}</strong>
-          <StaffNotifications user={user} />
+          <Link to="/admin/workflow/overview">Thông báo ({sharedNotificationCount(user.id)})</Link>
           <details className="staff-account-menu">
             <summary>
               <StaffIdentity user={user} />
@@ -1736,8 +1690,9 @@ function Home() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const starts = Date.parse(flashCampaign.startsAt),
-    ends = Date.parse(flashCampaign.endsAt),
+  const visibleCampaign = getFlashCampaigns().find(c=>now>=Date.parse(c.startsAt)&&now<=Date.parse(c.endsAt))||flashCampaign;
+  const starts = Date.parse(visibleCampaign.startsAt),
+    ends = Date.parse(visibleCampaign.endsAt),
     active = isFlashActive(now),
     upcoming = now < starts;
   const target = upcoming ? starts : ends,
@@ -1748,7 +1703,7 @@ function Home() {
       Math.floor(left / 1000) % 60,
     ].map((value) => String(value).padStart(2, "0"));
   const flashItems = products.filter((product) =>
-    flashCampaign.productIds.includes(product.id),
+    getFlashCampaigns().some(c=>c.productIds.includes(product.id)&&now>=Date.parse(c.startsAt)&&now<=Date.parse(c.endsAt)),
   );
   const bannerProducts = products
     .filter(
@@ -1867,6 +1822,8 @@ function Home() {
           ))}
         </div>
         <HealthHomeSection />
+        <PublishedContent kind="BANNER"/>
+        <PublishedContent kind="ARTICLE"/>
       </section>
     </>
   );
@@ -2072,7 +2029,7 @@ function Products() {
       (!category || product.category.includes(category)) &&
       (!sale ||
         sale !== "flash" ||
-        flashCampaign.productIds.includes(product.id)) &&
+        flashPrice(product) < product.price) &&
       (!min || price >= Number(min)) &&
       (!max || price <= Number(max))
     );
@@ -2478,6 +2435,7 @@ function Checkout() {
   if (!cart.length && !placingOrder.current) return <Navigate to="/cart" />;
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (placingOrder.current) return;
     if (
       !form.customer.trim() ||
       !/^[0-9]{9,11}$/.test(form.phone) ||
@@ -2820,7 +2778,7 @@ function Success() {
     </section>
   );
 }
-function AccountCenter(){const {user,orders,logout,notify}=useApp();const [tab,setTab]=useState('profile');const [profile,setProfile]=useState(()=>storage.get('ktht.customer.profile',{name:user?.name||'',email:user?.email||'',phone:''}));const [addresses,setAddresses]=useState<string[]>(()=>storage.get('ktht.customer.addresses',[]));const [newAddress,setNewAddress]=useState('');const [returns,setReturns]=useState<string[]>(()=>storage.get('ktht.customer.returns',[]));if(!user)return <Navigate to="/login"/>;const mine=orders.filter(order=>order.customerId?order.customerId===user.id:order.customer===user.name);const saveAddresses=(next:string[])=>{setAddresses(next);storage.set('ktht.customer.addresses',next)};const menu=[['profile','Thông tin cá nhân'],['addresses','Sổ địa chỉ nhận hàng'],['orders','Lịch sử đơn hàng'],['vouchers','Mã giảm giá của tôi'],['returns','Lịch sử đổi trả'],['notifications','Thông báo']];return <section className="wrap page account-center"><div className="account-heading"><div><span>TÀI KHOẢN CỦA TÔI</span><h1>Xin chào, {profile.name||user.name}</h1></div></div><div className="account-layout"><aside>{menu.map(([id,label])=><button className={tab===id?'active':''} onClick={()=>setTab(id)} key={id}>{label}</button>)}<button onClick={logout}>Đăng xuất</button></aside><main className="account-panel">{tab==='profile'&&<><h2>Thông tin cá nhân</h2><div className="form-grid"><label>Họ và tên<input value={profile.name} onChange={event=>setProfile({...profile,name:event.target.value})}/></label><label>Email<input type="email" value={profile.email} onChange={event=>setProfile({...profile,email:event.target.value})}/></label><label>Số điện thoại<input value={profile.phone} onChange={event=>setProfile({...profile,phone:event.target.value.replace(/\D/g,'')})}/></label></div><button className="primary" onClick={()=>{storage.set('ktht.customer.profile',profile);notify('Đã cập nhật thông tin cá nhân.')}}>Lưu thay đổi</button></>}{tab==='addresses'&&<><h2>Sổ địa chỉ nhận hàng</h2><div className="address-add"><input value={newAddress} onChange={event=>setNewAddress(event.target.value)} placeholder="Nhập địa chỉ mới"/><button className="primary" onClick={()=>{if(newAddress.trim()){saveAddresses([...addresses,newAddress.trim()]);setNewAddress('')}}}>Thêm địa chỉ</button></div>{addresses.map((address,index)=><div className="address-row" key={address+index}><span>{address}</span><button onClick={()=>{const value=prompt('Cập nhật địa chỉ',address);if(value?.trim())saveAddresses(addresses.map((item,i)=>i===index?value.trim():item))}}>Sửa</button><button onClick={()=>saveAddresses(addresses.filter((_,i)=>i!==index))}>Xóa</button></div>)}{!addresses.length&&<p className="empty">Bạn chưa lưu địa chỉ nào.</p>}</>}{tab==='orders'&&<><h2>Lịch sử đơn hàng</h2>{mine.map(order=><Link className="account-order" to={'/account/orders/'+order.id} key={order.id}><b>#{order.id}</b><span>{order.date}</span><Status status={order.status}/><strong>{currency(order.total)}</strong></Link>)}{!mine.length&&<p className="empty">Bạn chưa có đơn hàng nào.</p>}</>}{tab==='vouchers'&&<><h2>Mã giảm giá của tôi</h2>{getVouchers().filter(voucher=>voucher.active).map(voucher=><div className="voucher-ticket" key={voucher.id}><b>{voucher.code}</b><span>{voucher.name}</span><small>Đơn tối thiểu {currency(voucher.minEligibleAmount)} · xét trên giá trước Flash Sale</small></div>)}</>}{tab==='returns'&&<><h2>Lịch sử đổi trả</h2><button className="primary" disabled={!mine.length} onClick={()=>{const next=[`YC-${Date.now().toString().slice(-6)} · ${mine[0]?.id}`,...returns];setReturns(next);storage.set('ktht.customer.returns',next);notify('Đã tạo yêu cầu đổi trả.')}}>Tạo yêu cầu đổi trả</button>{returns.map(item=><div className="address-row" key={item}><span>{item}</span><Status status="Chờ xác nhận"/></div>)}</>}{tab==='notifications'&&<><h2>Thông báo</h2><div className="notice">Các cập nhật về xác nhận, vận chuyển và hoàn tất đơn hàng sẽ xuất hiện tại đây.</div></>}</main></div></section>}
+function AccountCenter(){const {user,orders,logout,notify}=useApp();const [tab,setTab]=useState('profile');const [profile,setProfile]=useState(()=>storage.get('ktht.customer.profile',{name:user?.name||'',email:user?.email||'',phone:''}));const [addresses,setAddresses]=useState<string[]>(()=>storage.get('ktht.customer.addresses',[]));const [newAddress,setNewAddress]=useState('');const [returns,setReturns]=useState<string[]>(()=>storage.get('ktht.customer.returns',[]));if(!user)return <Navigate to="/login"/>;const mine=orders.filter(order=>order.customerId?order.customerId===user.id:order.customer===user.name);const saveAddresses=(next:string[])=>{setAddresses(next);storage.set('ktht.customer.addresses',next)};const menu=[['profile','Thông tin cá nhân'],['addresses','Sổ địa chỉ nhận hàng'],['orders','Lịch sử đơn hàng'],['vouchers','Mã giảm giá của tôi'],['returns','Lịch sử đổi trả'],['notifications','Thông báo']];return <section className="wrap page account-center"><div className="account-heading"><div><span>TÀI KHOẢN CỦA TÔI</span><h1>Xin chào, {profile.name||user.name}</h1></div></div><div className="account-layout"><aside>{menu.map(([id,label])=><button className={tab===id?'active':''} onClick={()=>setTab(id)} key={id}>{label}</button>)}<button onClick={logout}>Đăng xuất</button></aside><main className="account-panel">{tab==='profile'&&<><h2>Thông tin cá nhân</h2><div className="form-grid"><label>Họ và tên<input value={profile.name} onChange={event=>setProfile({...profile,name:event.target.value})}/></label><label>Email<input type="email" value={profile.email} onChange={event=>setProfile({...profile,email:event.target.value})}/></label><label>Số điện thoại<input value={profile.phone} onChange={event=>setProfile({...profile,phone:event.target.value.replace(/\D/g,'')})}/></label></div><button className="primary" onClick={()=>{storage.set('ktht.customer.profile',profile);notify('Đã cập nhật thông tin cá nhân.')}}>Lưu thay đổi</button></>}{tab==='addresses'&&<><h2>Sổ địa chỉ nhận hàng</h2><div className="address-add"><input value={newAddress} onChange={event=>setNewAddress(event.target.value)} placeholder="Nhập địa chỉ mới"/><button className="primary" onClick={()=>{if(newAddress.trim()){saveAddresses([...addresses,newAddress.trim()]);setNewAddress('')}}}>Thêm địa chỉ</button></div>{addresses.map((address,index)=><div className="address-row" key={address+index}><span>{address}</span><button onClick={()=>{const value=prompt('Cập nhật địa chỉ',address);if(value?.trim())saveAddresses(addresses.map((item,i)=>i===index?value.trim():item))}}>Sửa</button><button onClick={()=>saveAddresses(addresses.filter((_,i)=>i!==index))}>Xóa</button></div>)}{!addresses.length&&<p className="empty">Bạn chưa lưu địa chỉ nào.</p>}</>}{tab==='orders'&&<><h2>Lịch sử đơn hàng</h2>{mine.map(order=><Link className="account-order" to={'/account/orders/'+order.id} key={order.id}><b>#{order.id}</b><span>{order.date}</span><Status status={order.status}/><strong>{currency(order.total)}</strong></Link>)}{!mine.length&&<p className="empty">Bạn chưa có đơn hàng nào.</p>}</>}{tab==='vouchers'&&<><h2>Mã giảm giá của tôi</h2>{getVouchers().filter(voucher=>voucher.active).map(voucher=><div className="voucher-ticket" key={voucher.id}><b>{voucher.code}</b><span>{voucher.name}</span><small>Đơn tối thiểu {currency(voucher.minEligibleAmount)} · xét trên giá trước Flash Sale</small></div>)}</>}{tab==='returns'&&<CustomerWorkflows user={user}/>}{tab==='notifications'&&<><h2>Thông báo</h2><CustomerWorkflows user={user}/></>}</main></div></section>}
 
 function Login() {
   const { login } = useApp();
@@ -3090,7 +3048,7 @@ function OrderDetail() {
           </ol>
         )}
         <p className="payment-status">
-          <b>Thanh toán:</b> Chưa thanh toán
+          <b>Thanh toán:</b> {o.paymentStatus==='PAID'?'Đã thanh toán':o.paymentStatus==='REFUNDED'?'Đã hoàn tiền':'Chưa thanh toán'} · {o.paymentMethod||'COD'}
         </p>
       </section>
       <div className="cart-layout">
@@ -3135,7 +3093,7 @@ function OrderDetail() {
           )}
           <p>
             <span>Phí giao hàng</span>
-            <b>Miễn phí</b>
+            <b>{currency(o.shippingFee||0)}</b>
           </p>
           {!hasPromotionDetail && (
             <p className="muted">Đơn này chưa lưu chi tiết ưu đãi.</p>
@@ -3147,6 +3105,7 @@ function OrderDetail() {
           </h3>
         </aside>
       </div>
+      <CustomerWorkflows user={user} orderId={o.id}/>
     </section>
   );
 }
@@ -3263,7 +3222,8 @@ function AdminOrders() {
 }
 function AdminOrderDetail() {
   const { id } = useParams();
-  const { orders, updateOrderStatus, requestConfirm } = useApp();
+  const { user, orders, updateOrderStatus, requestConfirm } = useApp();
+  if (!user || !canManageOrders(user.role)) return <Navigate to="/admin" replace />;
   const o = orders.find((x) => x.id === id);
   if (!o) return <Navigate to="/admin/orders" />;
   const display = o.status;
@@ -3304,35 +3264,8 @@ function AdminOrderDetail() {
               Xác nhận đơn
             </button>
           )}
-          {display === "Đang xử lý" && (
-            <button
-              className="primary full"
-              onClick={() => updateOrderStatus(o.id, "Đang giao")}
-            >
-              Bàn giao vận chuyển
-            </button>
-          )}
-          {display === "Đang giao" && (
-            <button
-              className="primary full"
-              onClick={() => updateOrderStatus(o.id, "Hoàn tất")}
-            >
-              Hoàn tất giao hàng
-            </button>
-          )}
-          {display === "Chờ xác nhận" && <button
-            className="secondary full"
-            onClick={() =>
-              requestConfirm(
-                "Hủy đơn hàng?",
-                "Đơn sẽ được chuyển sang trạng thái đã hủy.",
-                () => updateOrderStatus(o.id, "Đã hủy"),
-              )
-            }
-          >
-            Hủy đơn
-          </button>}
-          {display !== "Chờ xác nhận" && <p className="order-updated">Đơn hàng đã được cập nhật.</p>}
+          <Link className="secondary full" to="/admin/workflow/shipping">Theo dõi giao nhận</Link>
+          <Link className="secondary full" to="/admin/workflow/cancellations">Xử lý yêu cầu hủy</Link>
         </aside>
       </div>
     </>
@@ -3838,6 +3771,8 @@ function ApprovalsRoute() {
   const { user } = useApp();
   return <ApprovalsPage user={user} />;
 }
+const sharedNotificationCount=(id:string)=>Workflow.getState().notifications.filter(n=>n.userId===id&&!n.read).length;
+function WorkflowRoute({section}:{section?:React.ComponentProps<typeof WorkflowPage>['section']}){const {user}=useApp();const location=useLocation();return <WorkflowPage key={location.pathname} user={user} section={section}/>}
 function App() {
   return (
     <AppProvider>
@@ -3846,7 +3781,8 @@ function App() {
         <Routes>
           <Route element={<CustomerLayout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/goc-suc-khoe" element={<HealthHub />} />
+            <Route path="/goc-suc-khoe" element={<><PublishedContent kind="ARTICLE"/><HealthHub /></>} />
+            <Route path="/bai-viet/:id" element={<PublishedContent kind="ARTICLE"/>}/>
             <Route path="/goc-suc-khoe/:slug" element={<HealthArticlePage />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<Detail />} />
@@ -3869,19 +3805,20 @@ function App() {
           />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="promotions" element={<PromotionsRoute />} />
-            <Route path="orders" element={<AdminOrders />} />
+            <Route index element={<WorkflowRoute section="overview" />} />
+            <Route path="workflow/:section" element={<WorkflowRoute/>}/>
+            <Route path="products" element={<WorkflowRoute section="content" />} />
+            <Route path="promotions" element={<WorkflowRoute section="campaigns" />} />
+            <Route path="orders" element={<WorkflowRoute section="pending" />} />
             <Route path="orders/:id" element={<AdminOrderDetail />} />
-            <Route path="shipments" element={<Shipments />} />
-            <Route path="support" element={<Support />} />
-            <Route path="finance" element={<Finance />} />
+            <Route path="shipments" element={<WorkflowRoute section="shipping" />} />
+            <Route path="support" element={<WorkflowRoute section="tickets" />} />
+            <Route path="finance" element={<WorkflowRoute section="payments" />} />
             <Route path="reports" element={<Reports />} />
             <Route path="reports/forecast" element={<ForecastReport />} />
-            <Route path="proposals" element={<ProposalsRoute />} />
-            <Route path="approvals" element={<ApprovalsRoute />} />
-            <Route path="inventory" element={<Inventory />} />
+            <Route path="proposals" element={<WorkflowRoute section="price" />} />
+            <Route path="approvals" element={<WorkflowRoute section="approvals" />} />
+            <Route path="inventory" element={<WorkflowRoute section="stock" />} />
             <Route path="users" element={<Users />} />
           </Route>
           <Route path="*" element={<NotFound />} />

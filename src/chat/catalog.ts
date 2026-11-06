@@ -1,5 +1,6 @@
 ﻿import {catalog,type CatalogProduct} from '../data/catalog';
 import type {Role} from '../auth';
+import {getState} from '../workflow/store';
 import {aggregateReports,todayKey} from '../reports/analytics';
 import {getInventory,searchInventory} from '../inventory/store';
 import {flashCampaign,flashPrice,getVouchers,isFlashActive} from '../promotions';
@@ -19,14 +20,14 @@ const canReport=(role?:Role)=>role==='ECOM_MANAGER'||role==='MANAGER'||role==='A
 const money=(value:number)=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(value);
 const dateVN=(key:string)=>new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(key+'T12:00:00Z'));
 const productText=(item:CatalogProduct)=>normalize([item.name,item.category,item.brand,item.description,...item.tags].join(' '));
-const productsFor=(terms:string[],under100=false)=>catalog.filter(item=>terms.every(term=>productText(item).includes(term))&&(!under100||flashPrice(item)<100000)).slice(0,3);
+const productsFor=(terms:string[],under100=false)=>getState().products.filter(item=>terms.every(term=>productText(item).includes(term))&&(!under100||flashPrice(item)<100000)).slice(0,3);
 const lastDays=(days:number)=>{const date=new Date(todayKey()+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-days+1);return {from:date.toISOString().slice(0,10),to:todayKey()}};
 const monthRange=()=>({from:todayKey().slice(0,8)+'01',to:todayKey()});
 const orderLink=(order?:ChatOrder)=>order?{to:'/account/orders/'+order.id,label:'Xem chi tiết đơn'}:{to:'/account/orders',label:'Chọn đơn hàng'};
 const ticketTopic=(question:string)=>{const q=normalize(question);if(/doi|tra|hoan tien|giao sai|hong/.test(q))return 'Đổi trả';if(/bao hanh/.test(q))return 'Bảo hành';if(/giao hang|van chuyen|chua den|don hang/.test(q))return 'Giao hàng';if(/uu dai|giam gia|voucher|ma giam|flash sale/.test(q))return 'Ưu đãi';if(/thanh toan|cod/.test(q))return 'Thanh toán';if(/tim|san pham|thuoc|vitamin/.test(q))return 'Tìm sản phẩm';return 'Chưa phân loại'};
 
 function productReply(q:string):ChatReply[]{
-  if(/flash sale/.test(q)){const items=catalog.filter(item=>isFlashActive()&&flashCampaign.productIds.includes(item.id));return [{agent:product,text:items.length?'Các sản phẩm đang Flash Sale theo chiến dịch hiện hành:':'Hiện không có sản phẩm Flash Sale đang hoạt động.',products:items.slice(0,3)}]}
+  if(/flash sale/.test(q)){const items=getState().products.filter(item=>flashPrice(item)<item.price);return [{agent:product,text:items.length?'Các sản phẩm đang Flash Sale theo chiến dịch hiện hành:':'Hiện không có sản phẩm Flash Sale đang hoạt động.',products:items.slice(0,3)}]}
   if(/ma giam|voucher|uu dai/.test(q)){const code=q.match(/[a-z0-9]{5,}/i)?.[0]?.toUpperCase();const list=getVouchers().filter(item=>item.active);const found=code&&list.find(item=>item.code.toUpperCase()===code);if(code&&!found)return [{agent:product,text:`Chưa tìm thấy mã ${code}. Hãy kiểm tra lại mã hoặc xem các mã đang có.`}];if(found)return [{agent:product,text:`${found.code}: ${found.name}. Điều kiện tối thiểu ${money(found.minEligibleAmount)}; ${found.stackWithFlash?'có':'không'} cộng dồn với Flash Sale.`}];return [{agent:product,text:list.length?'Các mã đang hoạt động có điều kiện riêng theo giỏ hàng: '+list.map(item=>item.code+' ('+item.name+')').join(', ')+'.':'Chưa có mã khuyến mãi hoạt động.'}]}
   const ho=/thuoc ho|tim ho|ho khong/.test(q),cam=/thuoc cam|tim cam|cam khong/.test(q),under100=/vitamin c/.test(q)&&/duoi|100 nghin|100k/.test(q);
   if(ho&&cam){const cough=productsFor(['ho']),cold=productsFor(['cam']);return [{agent:product,text:cough.length?'Nhóm sản phẩm khớp “thuốc ho”:':'Chưa tìm thấy sản phẩm khớp “thuốc ho”.',products:cough},{agent:product,text:cold.length?'Nhóm sản phẩm khớp “thuốc cảm”:':'Chưa tìm thấy sản phẩm khớp “thuốc cảm”.',products:cold}]}
