@@ -617,7 +617,7 @@ function Brand({ admin = false }: { admin?: boolean }) {
     >
       <span className="v-mark">V</span>
       <span>
-        V-<b>pharma</b>
+        V-<b>PHARMA</b>
         {admin && <small>KHU VỰC NHÂN VIÊN</small>}
       </span>
     </Link>
